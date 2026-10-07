@@ -1,0 +1,40 @@
+name: Instalador Windows
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          arch: win64_msvc2019_64
+          cache: true
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Compilar
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+      - name: Juntar DLLs de Qt
+        run: |
+          mkdir deploy
+          copy build\MiChat.exe deploy\
+          windeployqt --release --no-translations deploy\MiChat.exe
+
+      - name: Crear instalador
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\michat.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiChat-Setup
+          path: dist/MiChat-Setup.exe
